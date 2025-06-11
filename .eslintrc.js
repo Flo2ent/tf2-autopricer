@@ -10,6 +10,6 @@ module.exports = {
   },
   rules: {
     "no-console": "off",
-    "prettier/prettier": "error",
+    "prettier/prettier": ["error", { endOfLine: "lf" }],
   },
 };

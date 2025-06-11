@@ -6,7 +6,7 @@ const renderPage = require("../layout");
 module.exports = function (app, config) {
   const router = express.Router();
 
-  const CONFIG_PATH = path.resolve(__dirname, "../../pricerConfig.json");
+  const CONFIG_PATH = path.resolve(__dirname, "../../config/pricerConfig.json");
   const thresholdSec = config.ageThresholdSec;
 
   const pricelistPath = path.resolve(__dirname, "../../files/pricelist.json");

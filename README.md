@@ -18,9 +18,9 @@ A custom pricer that generates item prices by analysing live and snapshot data f
 
 - **API Functionality:**
 
-  - *Add and Delete Items:* The API can be used to add or remove items for the auto pricer to track.
+  - _Add and Delete Items:_ The API can be used to add or remove items for the auto pricer to track.
 
-  - *Retrieve Prices:* Prices can be requested and retrieved through the API.
+  - _Retrieve Prices:_ Prices can be requested and retrieved through the API.
 
 - **Socket.IO Server:**
 
@@ -118,7 +118,7 @@ Holds core pricer settings:
     "host": "localhost",
     "port": 5432,
     "name": "tf2_autopricer_db",
-    "user": "tf2_autopricer_user", 
+    "user": "tf2_autopricer_user",
     "password": "<db password>"
   },
   "pricerPort": 3456,                      // HTTP & Socket.IO port for API

@@ -7,7 +7,7 @@ const path = require("path");
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 
-const CONFIG_PATH = path.resolve(__dirname, "../pricerConfig.json");
+const CONFIG_PATH = path.resolve(__dirname, "../config/pricerConfig.json");
 let config;
 try {
   config = loadJson(CONFIG_PATH);
