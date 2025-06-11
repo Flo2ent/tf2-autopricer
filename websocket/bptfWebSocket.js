@@ -3,11 +3,30 @@ const ws = require('ws');
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * Logs WebSocket events to a file with timestamp
+ * @param {string} logFile - Path to the log file
+ * @param {string} message - Message to log
+ */
 function logWebSocketEvent(logFile, message) {
     const timestamp = new Date().toISOString();
     fs.appendFileSync(logFile, `[${timestamp}] ${message}\n`);
 }
 
+/**
+ * Initialize the BackpackTF WebSocket connection
+ * @param {Object} config - Configuration object
+ * @param {Function} config.getAllowedItemNames - Function that returns Set of allowed item names
+ * @param {Object} config.schemaManager - TF2 Schema manager instance
+ * @param {Object} config.Methods - Methods helper object
+ * @param {Function} config.insertListing - Function to insert a listing into DB
+ * @param {Function} config.deleteRemovedListing - Function to delete a listing from DB
+ * @param {string[]} config.excludedSteamIds - Array of Steam IDs to exclude
+ * @param {string[]} config.excludedListingDescriptions - Array of listing descriptions to exclude
+ * @param {Object} config.blockedAttributes - Object mapping attribute names to float values
+ * @param {string} config.logFile - Path to WebSocket log file
+ * @returns {Object} WebSocket connection instance
+ */
 function initBptfWebSocket({
     getAllowedItemNames,
     schemaManager,
@@ -26,6 +45,13 @@ function initBptfWebSocket({
         }
     });
 
+    /**
+     * Process an individual WebSocket event
+     * @param {Object} e - The WebSocket event object
+     * @param {string} e.event - Event type ('listing-update' or 'listing-delete')
+     * @param {Object} e.payload - Event payload containing listing details
+     * @private
+     */
     function handleEvent(e) {
         if (!e.payload || !e.payload.item || !e.payload.item.name) {
             // Optionally log ignored events for debugging:
