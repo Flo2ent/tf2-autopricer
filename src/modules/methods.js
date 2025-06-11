@@ -1,0 +1,211 @@
+var Methods = function () {};
+var fs = require("fs");
+const path = require("path");
+
+const axios = require("axios");
+const AsyncLock = require("async-lock");
+const lock = new AsyncLock();
+
+const config = require("./config.json");
+const CACHE_FILE_PATH = path.resolve(__dirname, "cached-pricelist.json");
+
+Methods.prototype.halfScrapToRefined = function (halfscrap) {
+  var refined = parseFloat(
+    (halfscrap / 18).toString().match(/^-?\d+(?:\.\d{0,2})?/)[0]
+  );
+  return refined;
+};
+
+Methods.prototype.refinedToHalfScrap = function (refined) {
+  var halfScrap = parseFloat(
+    (refined * 18).toString().match(/^-?\d+(?:\.\d{0,2})?/)[0]
+  );
+  return halfScrap;
+};
+
+// Rounds the metal value to the nearest scrap.
+Methods.prototype.getRight = function (v) {
+  var i = Math.floor(v),
+    f = Math.round((v - i) / 0.11);
+  return parseFloat((i + (f === 9 ? 1 : f * 0.11)).toFixed(2));
+};
+
+// This method first takes the amount of keys the item costs and multiplies it by
+// the current key metal sell price. This gives us the amount of metal the key cost
+// is worth in terms of a keys current sell price. Then it adds this result onto
+// the metal cost. It's then rounded down to the nearest 0.11.
+
+// From here, the metal (being both the worth of the keys and the metal value), is
+// divided into the sell price of a key. Totalling the amount of keys that could be
+// afforded with the pure metal value. The metal component is calculated by taking the
+// remainder of the rounded total value divided by keyPrice. This gives the amount of
+// metal that couldn't be converted into a whole key.
+
+// This method ensures we make prices that take into account the current price of the key.
+Methods.prototype.parsePrice = function (original, keyPrice) {
+  // Defensive: ensure keys is always an integer
+  if (!Number.isInteger(original.keys)) {
+    console.error("parsePrice called with non-integer keys:", original);
+    original.keys = Math.trunc(original.keys);
+  }
+  var metal = this.getRight(original.keys * keyPrice) + original.metal;
+  return {
+    keys: Math.trunc(metal / keyPrice),
+    metal: this.getRight(metal % keyPrice),
+  };
+};
+
+Methods.prototype.toMetal = function (obj, keyPriceInMetal) {
+  var metal = 0;
+  metal += obj.keys * keyPriceInMetal;
+  metal += obj.metal;
+  return this.getRight(metal);
+};
+
+Methods.prototype.calculatePercentageDifference = function (value1, value2) {
+  if (value1 === 0) {
+    return value2 === 0 ? 0 : 100; // Handle division by zero
+  }
+  return ((value2 - value1) / Math.abs(value1)) * 100;
+};
+
+Methods.prototype.waitXSeconds = async function (seconds) {
+  return new Promise((resolve) => {
+    // Convert to miliseconds and then set timeout.
+    setTimeout(resolve, seconds * 1000);
+  });
+};
+
+Methods.prototype.validateObject = function (obj) {
+  // Check if the object is undefined, empty etc.
+  if (!obj) {
+    return false;
+  }
+  if (Object.keys(obj).length > 0) {
+    if (obj.hasOwnProperty("keys") || obj.hasOwnProperty("metal")) {
+      // The object is valid as it contains at least one expected key.
+      return true;
+    } else {
+      // The object is invalid as it doesn't contain any expected keys.
+      return false;
+    }
+  } else {
+    // The object is empty.
+    return false;
+  }
+};
+
+Methods.prototype.createCurrencyObject = function (obj) {
+  let newObj = {
+    keys: 0,
+    metal: 0,
+  };
+
+  if (obj.hasOwnProperty("keys")) {
+    newObj.keys = obj.keys;
+  }
+
+  if (obj.hasOwnProperty("metal")) {
+    newObj.metal = obj.metal;
+  }
+
+  return newObj;
+};
+
+const comparePrices = (item1, item2) => {
+  return item1.keys === item2.keys && item1.metal === item2.metal;
+};
+
+Methods.prototype.addToPricelist = function (item, PRICELIST_PATH) {
+  try {
+    lock.acquire("pricelist", () => {
+      const data = fs.readFileSync(PRICELIST_PATH, "utf8");
+      let existingData = JSON.parse(data);
+      let items = Array.isArray(existingData.items) ? existingData.items : [];
+
+      // Filter out empty or malformed items
+      items = items.filter((i) => i && i.name && i.sku && i.buy && i.sell);
+
+      // Validate new item
+      if (!item || !item.name || !item.sku || !item.buy || !item.sell) {
+        console.error("Attempted to add malformed item to pricelist:", item);
+        return;
+      }
+
+      // Sanity check: prevent absurd prices
+      if (item.sell.metal > 1000 || item.buy.metal > 1000) {
+        console.error(`[ERROR] Abnormal price for ${item.name}:`, item);
+        return;
+      }
+
+      const existingIndex = items.findIndex(
+        (pricelist_item) => pricelist_item.sku === item.sku
+      );
+
+      if (existingIndex !== -1) {
+        items[existingIndex] = item;
+      } else {
+        items.push(item);
+      }
+
+      existingData.items = items;
+
+      // Atomic write
+      const tempPath = PRICELIST_PATH + ".tmp";
+      fs.writeFileSync(tempPath, JSON.stringify(existingData, null, 2), "utf8");
+      fs.renameSync(tempPath, PRICELIST_PATH);
+    });
+  } catch (error) {
+    console.error("Error:", error);
+  }
+};
+
+// Request related methods.
+// This method is now deprecated on Backpack.tf and will not work.
+Methods.prototype.getListingsFromSnapshots = async function (name) {
+  try {
+    // Endpoint is limited to 1 request per 60 seconds.
+    await this.waitXSeconds(1);
+    const response = await axios.get(
+      `https://backpack.tf/api/classifieds/listings/snapshot`,
+      {
+        params: {
+          sku: name,
+          appid: 440,
+          token: config.bptfToken,
+        },
+      }
+    );
+    if (response.status === 200) {
+      const listings = response.data.listings;
+      return listings;
+    } else {
+      throw new Error("Rate limited.");
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+Methods.prototype.getKeyPrice = async function () {
+  try {
+    const response = await axios.get("https://backpack.tf/api/IGetPrices/v4", {
+      params: {
+        key: config.bptfAPIKey,
+        sku: "5021;6",
+      },
+    });
+
+    if (response.status === 200 && response.data.response) {
+      const keyData = response.data.response.items["Mann Co. Supply Crate Key"];
+      return {
+        metal: keyData.prices[6].current.metal,
+      };
+    }
+    throw new Error("Failed to get key price from backpack.tf");
+  } catch (error) {
+    throw error;
+  }
+};
+
+module.exports = Methods;

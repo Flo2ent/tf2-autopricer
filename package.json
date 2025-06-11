@@ -1,14 +1,19 @@
 {
-  "name": "bptf-autopricer",
+  "name": "tf2-autopricer",
   "version": "1.0.0",
   "description": "Automatically prices items using listing data from backpack.tf, with data from prices.tf acting as a baseline.",
-  "main": "bptf-autopricer.js",
+  "main": "tf2-autopricer.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch",
+    "start": "node dist/bundle.js",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix",
+    "format": "prettier --write \"**/*.{js,json,md}\""
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OliverPerring/bliss-autopricer.git"
+    "url": "git+https://github.com/Flo2ent/tf2-autopricer.git"
   },
   "keywords": [
     "tf2",
@@ -35,5 +40,17 @@
     "reconnecting-websocket": "^4.4.0",
     "socket.io": "^4.7.2",
     "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.27.4",
+    "@babel/preset-env": "^7.27.2",
+    "babel-loader": "^9.2.1",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "prettier": "^3.1.0",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^5.1.4",
+    "webpack-node-externals": "^3.0.0"
   }
 }
