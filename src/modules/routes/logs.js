@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const renderPage = require('../layout');
+const fs = require("fs");
+const path = require("path");
+const renderPage = require("../layout");
 
 const LOG_FILES = ["tf2-autopricer-out.log", "tf2-autopricer-error.log"];
 

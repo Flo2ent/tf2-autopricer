@@ -59,11 +59,9 @@ const excludedListingDescriptions = config.excludedListingDescriptions;
 // Blocked attributes that we want to ignore. (Paints, parts, etc.)
 const blockedAttributes = config.blockedAttributes;
 
-const fallbackOntoPricesTf = config.fallbackOntoPricesTf;
-
 // Create database instance for pg-promise.
 const createDb = require("./modules/db");
-const { db, pgp, cs } = createDb(config);
+const { db, pgp, _cs } = createDb(config);
 
 if (fs.existsSync(SCHEMA_PATH)) {
   // A cached schema exists.
@@ -100,7 +98,6 @@ schemaManager.on("schema", function (schema) {
 });
 
 var keyobj;
-var external_pricelist;
 
 const updateKeyObject = async () => {
   try {
@@ -154,14 +151,12 @@ const calculateAndEmitPrices = async () => {
       if (!item) {
         continue;
       }
-      // If item is priced at 0, we skip it. Autobot cache of the prices.tf pricelist can sometimes have items set as such.
+      // If item is priced at 0, we skip it. Pricelist can sometimes have items set as such.
       if (
         (item.buy.keys === 0 && item.buy.metal === 0) ||
         (item.sell.keys === 0 && item.sell.metal === 0)
       ) {
-        throw new Error(
-          "Autobot cache of prices.tf pricelist has marked item with price of 0."
-        );
+        throw new Error("Pricelist has marked item with price of 0.");
       }
 
       // If it's a key (sku 5021;6), insert the price into the key_prices table
@@ -202,12 +197,8 @@ schemaManager.init(async function (err) {
   // You can pass a custom ageThresholdSec (default is 2*3600) and intervalSec (default is 300)
   PriceWatcher.watchPrices(pricelistPath /*, ageThresholdSec, intervalSec */);
 
-  // Get external pricelist.
-  external_pricelist = await Methods.getExternalPricelist();
   // Update key object.
   await updateKeyObject();
-  // Get external pricelist.
-  //external_pricelist = await Methods.getExternalPricelist();
   // Calculate and emit prices on startup.
   await calculateAndEmitPrices();
   // Call this once at startup if needed
@@ -225,9 +216,6 @@ schemaManager.init(async function (err) {
 
   // Start scheduled tasks after everything is ready
   scheduleTasks({
-    updateExternalPricelist: async () => {
-      external_pricelist = await Methods.getExternalPricelist();
-    },
     calculateAndEmitPrices,
     cleanupOldKeyPrices: async (db) => {
       await cleanupOldKeyPrices(db);
@@ -254,7 +242,7 @@ schemaManager.init(async function (err) {
 });
 
 async function isPriceSwingAcceptable(prev, next, sku) {
-  // Fetch last 5 prices from DB
+  // Get recent price history to establish baseline
   const history = await db.any(
     "SELECT buy_metal, sell_metal FROM price_history WHERE sku = $1 ORDER BY timestamp DESC LIMIT 5",
     [sku]
@@ -269,15 +257,13 @@ async function isPriceSwingAcceptable(prev, next, sku) {
   const nextBuy = Methods.toMetal(next.buy, keyobj.metal);
   const nextSell = Methods.toMetal(next.sell, keyobj.metal);
 
-  const maxBuyIncrease = config.priceSwingLimits?.maxBuyIncrease ?? 0.1;
-  const maxSellDecrease = config.priceSwingLimits?.maxSellDecrease ?? 0.1;
+  // Use configurable thresholds for internal price movement
+  const maxBuySwing = 0.15; // 15% max change
+  const maxSellSwing = 0.15;
 
-  if (nextBuy > avgBuy && (nextBuy - avgBuy) / avgBuy > maxBuyIncrease) {
-    return false;
-  }
-  if (nextSell < avgSell && (avgSell - nextSell) / avgSell > maxSellDecrease) {
-    return false;
-  }
+  if (Math.abs((nextBuy - avgBuy) / avgBuy) > maxBuySwing) return false;
+  if (Math.abs((nextSell - avgSell) / avgSell) > maxSellSwing) return false;
+
   return true;
 }
 
@@ -345,7 +331,7 @@ const determinePrice = async (name, sku) => {
 
   try {
     // If the buyFiltered or sellFiltered arrays are empty, we throw an error.
-    let arr = getAverages(name, buyFiltered, sellFiltered, sku, pricetfItem);
+    let arr = getAverages(name, buyFiltered, sellFiltered, sku);
     return arr;
   } catch (e) {
     throw new Error(e);
@@ -409,7 +395,7 @@ const filterOutliers = (listingsArray) => {
   return filteredMean;
 };
 
-const getAverages = (name, buyFiltered, sellFiltered, sku, pricetfItem) => {
+const getAverages = (name, buyFiltered, sellFiltered, sku) => {
   // Initialse two objects to contain the items final buy and sell prices.
   var final_buyObj = {
     keys: 0,
@@ -480,49 +466,12 @@ const getAverages = (name, buyFiltered, sellFiltered, sku, pricetfItem) => {
       ); // Not enough
     }
 
-    var usePrices = false;
-    try {
-      // Will return true or false. True if we are ok with the autopricers price, false if we are not.
-      // We use prices.tf as a baseline.
-      usePrices = Methods.calculatePricingAPIDifferences(
-        pricetfItem,
-        final_buyObj,
-        final_sellObj,
-        keyobj
-      );
-    } catch (e) {
-      // Create an error object with a message detailing this difference.
-      throw new Error(`| UPDATING PRICES |: Our autopricer determined that name ${name} should sell for : ${final_sellObj.keys} keys and 
-            ${final_sellObj.metal} ref, and buy for ${final_buyObj.keys} keys and ${final_buyObj.metal} ref. Prices.tf
-            determined I should sell for ${pricetfItem.sell.keys} keys and ${pricetfItem.sell.metal} ref, and buy for
-            ${pricetfItem.buy.keys} keys and ${pricetfItem.buy.metal} ref. Message returned by the method: ${e.message}`);
-    }
-
-    // if-else statement probably isn't needed, but I'm just being cautious.
-    if (usePrices) {
-      // The final averages are returned here. But work is still needed to be done. We can't assume that the buy average is
-      // going to be lower than the sell average price. So we need to check for this later.
-      return [final_buyObj, final_sellObj];
-    } else {
-      throw new Error(`| UPDATING PRICES |: ${name} pricing average generated by autopricer is too dramatically
-            different to one returned by prices.tf`);
-    }
+    // The final averages are returned here. But work is still needed to be done. We can't assume that the buy average is
+    // going to be lower than the sell average price. So we need to check for this later.
+    return [final_buyObj, final_sellObj];
   } catch (error) {
-    // If configured, we fallback onto prices.tf for the price.
-    if (fallbackOntoPricesTf) {
-      const final_buyObj = {
-        keys: pricetfItem.buy.keys,
-        metal: pricetfItem.buy.metal,
-      };
-      const final_sellObj = {
-        keys: pricetfItem.sell.keys,
-        metal: pricetfItem.sell.metal,
-      };
-      return [final_buyObj, final_sellObj];
-    } else {
-      // We rethrow the error.
-      throw error;
-    }
+    console.log(`Error pricing ${name}: ${error.message}`);
+    throw error;
   }
 };
 
