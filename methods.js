@@ -262,144 +262,25 @@ Methods.prototype.getListingsFromSnapshots = async function(name) {
     }
 };
 
-Methods.prototype.getJWTFromPricesTF = async function(page, limit) {
-    let tries = 1;
-
-    while (tries <= 3) {
-        try {
-            const response = await axios.post('https://api2.prices.tf/auth/access');
-            if (response.status === 200) {
-                const axiosConfig = {
-                    headers: {
-                        Authorization: `Bearer ${response.data.accessToken}`
-                    },
-                    params: {
-                        page: page,
-                        limit: limit
-                    }
-                };
-                return axiosConfig;
-            }
-        } catch (error) {
-            // Added in rare case we get rate limited requesting a JWT.
-            if (error?.status === 429 || error?.response?.data.statusCode === 429) {
-                // Retry in 60 seconds.
-                await this.waitXSeconds(60);
-            }
-            console.log('Error occurred getting auth token from prices.tf, retrying...');
-        }
-
-        tries++;
-    }
-
-    throw new Error('An error occurred while getting authenticated with Prices.tf');
-};
-
-Methods.prototype.getKeyPriceFromPricesTF = async function() {
-    try {
-        const axiosConfig = await this.getJWTFromPricesTF(1, 100);
-
-        let tries = 1;
-        while (tries <= 5) {
-            const response = await axios.get('https://api2.prices.tf/prices/5021;6', axiosConfig);
-
-            if (response.status === 200) {
-                const sellMetal = Methods.halfScrapToRefined(response.data.sellHalfScrap);
-                return {
-                    metal: sellMetal
-                };
-            } 
-
-            tries++;
-        } 
-
-        throw new Error('Failed to get key price from Prices.TF. It is either down or we are being rate-limited.');
-    } catch (error) {
-        throw error;
-    }
-};
-
-Methods.prototype.getKeyFromExternalAPI = async function() {
-    let key_object = {};
-
-    try {
-        const axiosConfig = await this.getJWTFromPricesTF(1, 100);
-
-        let tries = 1;
-        while (tries <= 5) {
-            const response = await axios.get('https://api2.prices.tf/prices/5021;6', axiosConfig);
-
-            if (response.status === 200) {
-                key_object.name = 'Mann Co. Supply Crate Key';
-                key_object.sku = '5021;6';
-                key_object.source = 'bptf';
-
-                let buyKeys = Object.is(response.data.buyKeys, undefined) ? 0 : response.data.buyKeys;
-
-                let buyMetal = this.halfScrapToRefined(
-                    Object.is(response.data.buyHalfScrap, undefined) ? 0 : response.data.buyHalfScrap
-                );
-
-                buyMetal = this.getRight(buyMetal);
-
-                key_object.buy = {
-                    keys: buyKeys,
-                    metal: buyMetal
-                };
-
-                let sellKeys = Object.is(response.data.sellKeys, undefined) ? 0 : response.data.sellKeys;
-
-                let sellMetal = this.halfScrapToRefined(
-                    Object.is(response.data.sellHalfScrap, undefined) ? 0 : response.data.sellHalfScrap
-                );
-
-                sellMetal = this.getRight(sellMetal);
-
-                key_object.sell = {
-                    keys: sellKeys,
-                    metal: sellMetal
-                };
-
-                key_object.time = Math.floor(Date.now() / 1000);
-
-                return key_object;
-            } 
-
-            // Wait 10 seconds between retries. I want to ensure that this succeeds as the key price is very important.
-            await this.waitXSeconds(10);
-            tries++;
-        }
-
-        throw new Error('Failed to get key price from Prices.TF. It is either down or we are being rate-limited.');
-    } catch (error) {
-        throw error;
-    }
-};
-
-Methods.prototype.getExternalPricelist = async function() {
+Methods.prototype.getKeyPrice = async function () {
   try {
-    const response = await axios.get('https://autobot.tf/json/pricelist-array');
-    if (!response.data || !Array.isArray(response.data.items) || response.data.items.length === 0) {
-      throw new Error('No items in external pricelist.');
+    const response = await axios.get("https://backpack.tf/api/IGetPrices/v4", {
+      params: {
+        key: config.bptfAPIKey,
+        sku: "5021;6",
+      },
+    });
+
+    if (response.status === 200 && response.data.response) {
+      const keyData = response.data.response.items["Mann Co. Supply Crate Key"];
+      return {
+        metal: keyData.prices[6].current.metal,
+      };
     }
-    // Cache the fetched pricelist to file
-    try {
-      await fs.promises.writeFile(CACHE_FILE_PATH, JSON.stringify(response.data, null, 2), 'utf-8');
-    } catch (writeErr) {
-      console.warn(`Failed to write cache file at ${CACHE_FILE_PATH}: ${writeErr.message}`);
-    }
-    return response.data;
-  } catch (err) {
-    console.warn(`Could not fetch external pricelist, falling back to cache: ${err.message}`);
-    try {
-      const cached = await fs.promises.readFile(CACHE_FILE_PATH, 'utf-8');
-      const data = JSON.parse(cached);
-      return data;
-    } catch (cacheErr) {
-      throw new Error(`Failed to fetch external pricelist and no valid cache available: ${cacheErr.message}`);
-    }
+    throw new Error("Failed to get key price from backpack.tf");
+  } catch (error) {
+    throw error;
   }
 };
-
 
 module.exports = Methods;
