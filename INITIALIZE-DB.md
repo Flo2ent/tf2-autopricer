@@ -6,7 +6,7 @@ If you want to use the default database settings as provided in the config.json 
    - If it asks for a password, make sure you note it down as you will need to set the password in `config.json` once you are done here.
    - If no password was required, then you likely need to create one for this user, use the following command in the open psql session:
    - \password postgres and enter a new password when prompted.
-4. Type CREATE DATABASE "bptf-autopricer"; and hit enter.
+4. Type CREATE DATABASE "tf2-autopricer"; and hit enter.
    - **!IMPORTANT!**: 
 6. Type \c "name of the database you just created" and hit enter
 7. Type \i path/to/initialize-db.sql and hit enter

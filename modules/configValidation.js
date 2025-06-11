@@ -2,33 +2,33 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULTS = {
-    bptfAPIKey: "",
-    bptfToken: "",
-    steamAPIKey: "",
-    database: {
-        schema: "tf2",
-        host: "localhost",
-        port: 5432,
-        name: "bptf-autopricer",
-        user: "postgres",
-        password: ""
-    },
-    pricerPort: 3456,
-    maxPercentageDifferences: {
-        buy: 5,
-        sell: -8
-    },
-    alwaysQuerySnapshotAPI: false,
-    fallbackOntoPricesTf: false,
-    excludedSteamIDs: [],
-    trustedSteamIDs: [],
-    excludedListingDescriptions: [],
-    blockedAttributes: {},
-    minSellMargin: 0.11,
-    priceSwingLimits: {
-        maxBuyIncrease: 0.10,
-        maxSellDecrease: 0.10
-    }
+  bptfAPIKey: "",
+  bptfToken: "",
+  steamAPIKey: "",
+  database: {
+    schema: "tf2",
+    host: "localhost",
+    port: 5432,
+    name: "tf2_autopricer_db",
+    user: "tf2_autopricer_user",
+    password: "",
+  },
+  pricerPort: 3456,
+  maxPercentageDifferences: {
+    buy: 5,
+    sell: -8,
+  },
+  alwaysQuerySnapshotAPI: false,
+  fallbackOntoPricesTf: false,
+  excludedSteamIDs: [],
+  trustedSteamIDs: [],
+  excludedListingDescriptions: [],
+  blockedAttributes: {},
+  minSellMargin: 0.11,
+  priceSwingLimits: {
+    maxBuyIncrease: 0.1,
+    maxSellDecrease: 0.1,
+  },
 };
 
 function deepMerge(target, src) {

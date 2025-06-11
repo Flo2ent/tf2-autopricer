@@ -1,4 +1,4 @@
-# bliss-autopricer
+# tf2-autopricer
 <div align="center"><img src="https://github.com/jack-richards/bptf-autopricer/assets/58331725/203fe808-30ff-4d7d-868c-a3ef6d31497d" alt="logo" style="width: 280px; height: 320px; display: block; margin-left: auto; margin-right: auto;"></div>
 
 A custom pricer that generates item prices by analysing live and snapshot data from [backpack.tf](https://backpack.tf), applies sanity checks, and integrates seamlessly with TF2 Autobot. Modified and forked from Jacks Auto Pricer!
@@ -45,8 +45,8 @@ Setup & Installation
 1.  Clone this repository and install dependencies:
 
     ```
-    git clone https://github.com/OliverPerring/bliss-autopricer.git
-    cd bptf-autopricer
+    git clone https://github.com/Flo2ent/tf2-autopricer.git
+    cd tf2-autopricer
     npm install
     ```
 
@@ -120,8 +120,8 @@ Holds core pricer settings:
     "schema": "schemaname",
     "host": "localhost",
     "port": 5432,
-    "name": "bptf-autopricer",
-    "user": "postgres",
+    "name": "tf2_autopricer_db",
+    "user": "tf2_autopricer_user",
     "password": "<db password>"
   },
   "pricerPort": 3456,                      // HTTP & Socket.IO port for API
@@ -303,20 +303,20 @@ Running
 Start the pricer (includes API, Socket.IO & Web Interface):
 
 ```
-node bptf-autopricer.js
+node tf2-autopricer.js
 ```
 
 **Tip:** Run under PM2 to keep alive:
 
 ```
 npm install -g pm2
-pm2 start bptf-autopricer.js --name bptf-autopricer
+pm2 start tf2-autopricer.js --name tf2-autopricer
 ```
 
 Web Interface
 -------------
 
-The bliss-autopricer includes a built-in web dashboard for managing and monitoring your pricing bot. This interface is available at `http://localhost:<pricerConfig.port>` (default: 3000).
+The tf2-autopricer includes a built-in web dashboard for managing and monitoring your pricing bot. This interface is available at `http://localhost:<pricerConfig.port>` (default: 3000).
 
 ### Main Features
 

@@ -1,14 +1,14 @@
 {
-  "name": "bptf-autopricer",
+  "name": "tf2-autopricer",
   "version": "1.0.0",
   "description": "Automatically prices items using listing data from backpack.tf, with data from prices.tf acting as a baseline.",
-  "main": "bptf-autopricer.js",
+  "main": "tf2-autopricer.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OliverPerring/bliss-autopricer.git"
+    "url": "git+https://github.com/Flo2ent/tf2-autopricer.git"
   },
   "keywords": [
     "tf2",

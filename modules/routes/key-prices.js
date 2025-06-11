@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { loadJson } = require('../utils');
-const { db } = require('../../bptf-autopricer');
+const { db } = require("../../tf2-autopricer.js");
 const renderPage = require('../layout');
 
 module.exports = (app, config) => {
