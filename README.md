@@ -42,17 +42,27 @@ A custom pricer that generates item prices by analysing live and snapshot data f
 
 1.  Clone this repository and install dependencies:
 
-    ```
+    ```shell
     git clone https://github.com/Flo2ent/tf2-autopricer.git
+    ```
+
+    ```shell
     cd tf2-autopricer
+    ```
+
+    ```shell
     npm install
     ```
 
-2.  Copy and configure both `config.json` and `pricerConfig.json` at the project root.
+    ```shell
+    npm run build
+    ```
+
+2.  Go to `src/config`. Rename `config.example.json` to `config.json` and `pricerConfig.example.json` to `pricerConfig.json` and configure these files.
 
 ### Database Initialization
 
-Create your database/schema and the `listings` and `key_prices` table or alternativly follow the instructions within the [INITIALIZE-DB.md](https://github.com/jack-richards/bptf-autopricer/blob/main/INITIALIZE-DB.md) for a quick start.
+Create your database/schema and the `listings` and `key_prices` table or alternativly follow the instructions within the [INITIALIZE-DB.md](https://github.com/Flo2ent/tf2-autopricer/blob/main/db/INITIALIZE-DB.md) for a quick start.
 
 ```SQL
 CREATE SCHEMA schemaname AUTHORIZATION postgres;
@@ -83,28 +93,16 @@ CREATE TABLE schemaname.listing_stats (
     moving_avg_buy_count real DEFAULT 0,
     current_sell_count integer DEFAULT 0,
     moving_avg_sell_count real DEFAULT 0;
+    current_buy_count integer DEFAULT 0,
+    moving_avg_buy_count real DEFAULT 0,
+    current_sell_count integer DEFAULT 0,
+    moving_avg_sell_count real DEFAULT 0;
 );
 ```
 
-### Database Schema Updates
-
-**If you are upgrading from a previous version, you must update your database schema to add new columns to `schemaname.listing_stats`.**
-
-Run the following SQL to update your database:
-
-```SQL
-ALTER TABLE schemaname.listing_stats
-    ADD COLUMN current_buy_count integer DEFAULT 0,
-    ADD COLUMN moving_avg_buy_count real DEFAULT 0,
-    ADD COLUMN current_sell_count integer DEFAULT 0,
-    ADD COLUMN moving_avg_sell_count real DEFAULT 0;
-```
-
-Alternatively, run the provided `update-listing-stats.sql` file.
-
 ## Configuration
 
-### `config.json`
+### `src/config/config.json`
 
 Holds core pricer settings:
 
@@ -147,14 +145,14 @@ Holds core pricer settings:
 }
 ```
 
-### `pricerConfig.json`
+### `src/config/pricerConfig.json`
 
 Controls the Price Watcher web UI and integration with TF2AutoBot's selling pricelist:
 
 ```JSON
 {
   "pm2ProcessName": "tf2autobot",     // Name for PM2 restart on changes
-  "tf2AutobotDir": "../../tf2autobot-5.13.0", // Path to TF2 Autobot root
+  "tf2AutobotDir": "../../../tf2autobot-5.13.0", // Path to TF2 Autobot root
   "botTradingDir": "files/bot",       // Subdirectory containing bot's pricelist.json
   "port": 3000,                        // Port to serve the Price Watcher UI
   "ageThresholdSec": 7200              // Threshold in seconds to mark prices outdated
@@ -189,7 +187,7 @@ The socket io server will emit events called 'price' with an item object as the 
 Now I'll highlight the different API routes you can make queries to, and what responses you can expect to receive.\
 Please note that both the Socket IO server and API run locally (localhost) on the port defined in `config.json`.
 
-```
+```shell
 GET /items/:sku
 ```
 
@@ -297,15 +295,18 @@ Deletes an item from the list of items to automatically price.
 
 Start the pricer (includes API, Socket.IO & Web Interface):
 
-```
+```shell
 node tf2-autopricer.js
 ```
 
 **Tip:** Run under PM2 to keep alive:
 
-```
+```shell
 npm install -g pm2
-pm2 start tf2-autopricer.js --name tf2-autopricer
+```
+
+```shell
+pm2 start dist/tf2-autopricer.js --name tf2-autopricer
 ```
 
 ## Web Interface

@@ -3,7 +3,7 @@ const nodeExternals = require("webpack-node-externals");
 
 module.exports = {
   target: "node",
-  entry: "./src/bptf-autopricer.js",
+  entry: "./src/tf2-autopricer.js",
   output: {
     filename: "bundle.js",
     path: path.resolve(__dirname, "dist"),

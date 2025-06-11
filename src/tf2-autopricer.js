@@ -5,10 +5,10 @@ const chokidar = require("chokidar");
 const methods = require("./methods");
 const Methods = new methods();
 const path = require("path");
-const { validateConfig } = require("./modules/configValidation");
+const { validateConfig } = require("./modules/configValidation.js");
 const CONFIG_PATH = path.resolve(__dirname, "config.json");
 const config = validateConfig(CONFIG_PATH);
-const PriceWatcher = require("./modules/PriceWatcher"); //outdated price logging
+const PriceWatcher = require("./modules/PriceWatcher.js"); //outdated price logging
 const Schema = require("@tf2autobot/tf2-schema");
 const SCHEMA_PATH = "./schema.json";
 // Paths to the pricelist and item list files.
@@ -16,7 +16,7 @@ const PRICELIST_PATH = "./files/pricelist.json";
 const ITEM_LIST_PATH = "./files/item_list.json";
 const { listen, socketIO } = require("./api/server.js");
 const { startPriceWatcher } = require("./modules/index");
-const scheduleTasks = require("./modules/scheduler");
+const scheduleTasks = require("./modules/scheduler.js");
 
 const {
   sendPriceAlert,
@@ -24,20 +24,20 @@ const {
   insertKeyPrice,
   adjustPrice,
   checkKeyPriceStability,
-} = require("./modules/keyPriceUtils");
+} = require("./modules/keyPriceUtils.js");
 
 const {
   updateMovingAverages,
   updateListingStats,
   initializeListingStats,
-} = require("./modules/listingAverages");
+} = require("./modules/listingAverages.js");
 
 const {
   getListings,
   insertListing,
   deleteRemovedListing,
   deleteOldListings,
-} = require("./modules/listings");
+} = require("./modules/listings.js");
 const logDir = path.join(__dirname, "logs");
 const logFile = path.join(logDir, "websocket.log");
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
@@ -60,7 +60,7 @@ const excludedListingDescriptions = config.excludedListingDescriptions;
 const blockedAttributes = config.blockedAttributes;
 
 // Create database instance for pg-promise.
-const createDb = require("./modules/db");
+const createDb = require("./modules/db.js");
 const { db, pgp, _cs } = createDb(config);
 
 if (fs.existsSync(SCHEMA_PATH)) {
@@ -129,7 +129,7 @@ const updateKeyObject = async () => {
 const { initBptfWebSocket } = require("./websocket/bptfWebSocket");
 
 // Load item names and bounds from item_list.json
-const createItemListManager = require("./modules/itemList");
+const createItemListManager = require("./modules/itemList.js");
 const itemListManager = createItemListManager(ITEM_LIST_PATH);
 const { loadNames, watchItemList, getAllowedItemNames, getItemBounds } =
   itemListManager;
