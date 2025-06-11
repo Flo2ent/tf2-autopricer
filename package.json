@@ -4,7 +4,9 @@
   "description": "Automatically prices items using listing data from backpack.tf, with data from prices.tf acting as a baseline.",
   "main": "tf2-autopricer.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch",
+    "start": "node dist/bundle.js"
   },
   "repository": {
     "type": "git",
@@ -35,5 +37,13 @@
     "reconnecting-websocket": "^4.4.0",
     "socket.io": "^4.7.2",
     "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.27.4",
+    "@babel/preset-env": "^7.27.2",
+    "babel-loader": "^9.2.1",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^5.1.4",
+    "webpack-node-externals": "^3.0.0"
   }
 }
